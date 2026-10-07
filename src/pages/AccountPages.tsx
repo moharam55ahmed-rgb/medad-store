@@ -1,6 +1,7 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Icon } from "../components/Icons";
+import { allProducts } from "../data";
 import { money } from "../format";
 import { useStore } from "../store";
 import type { IconName } from "../types";
@@ -8,14 +9,30 @@ import { StatusLine } from "./CheckoutPages";
 
 const side: { to: string; label: string; icon: IconName; end?: boolean }[] = [
   { to: "/account", label: "حسابي", icon: "user", end: true },
+  { to: "/account#profile", label: "الملف الشخصي", icon: "user" },
   { to: "/orders", label: "طلباتي", icon: "box" },
   { to: "/wishlist", label: "المفضلة", icon: "reward" },
   { to: "/rewards", label: "نقاطي ومكافآتي", icon: "points" },
   { to: "/addresses", label: "عناويني", icon: "pin" },
   { to: "/payments", label: "طرق الدفع", icon: "card" },
   { to: "/notifications", label: "الإشعارات", icon: "bell" },
-  { to: "/returns", label: "الإرجاع والاستبدال", icon: "refresh" },
 ];
+
+function MenuLinks() {
+  return side.map((item) =>
+    item.to.includes("#") ? (
+      <a key={item.to} href={item.to}>
+        <Icon name={item.icon} />
+        {item.label}
+      </a>
+    ) : (
+      <NavLink key={item.to} to={item.to} end={item.end}>
+        <Icon name={item.icon} />
+        {item.label}
+      </NavLink>
+    ),
+  );
+}
 
 function Shell({ title, children }: { title: string; children: ReactNode }) {
   const { loggedIn, profile, logout } = useStore();
@@ -30,12 +47,7 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
             <span>{loggedIn ? profile.email : "سجّلي الدخول"}</span>
           </div>
         </div>
-        {side.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end}>
-            <Icon name={item.icon} />
-            {item.label}
-          </NavLink>
-        ))}
+        <MenuLinks />
         <button
           type="button"
           onClick={() => {
@@ -55,12 +67,69 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+const steps = ["تم الدفع", "قيد التجهيز", "تم الشحن", "قيد التوصيل", "تم التسليم"];
+
+const dashOrders = [
+  {
+    id: "MD2485",
+    date: "10 مايو 2024",
+    total: 32.5,
+    step: 3,
+    count: 3,
+    thumbs: ["/account/wish-cream.png", "/account/wish-serum.png", "/account/wish-lipstick.png"],
+    action: "تتبع الطلب",
+    href: "/track/MD2485",
+  },
+  {
+    id: "MD2401",
+    date: "2 مايو 2024",
+    total: 18.9,
+    step: 1,
+    count: 4,
+    thumbs: ["/account/wish-perfume.png", "/account/wish-palette.png", "/account/wish-wash.png", "/account/wish-cream.png"],
+    action: "عرض التفاصيل",
+    href: "/track/MD2401",
+    again: true,
+  },
+  {
+    id: "MD2367",
+    date: "18 أبريل 2024",
+    total: 45,
+    step: 4,
+    count: 2,
+    thumbs: ["/account/wish-serum.png", "/account/wish-cream.png"],
+    action: "اطلب مرة أخرى",
+    href: "/orders",
+  },
+];
+
+const activity = [
+  { icon: "/account/st-check.png", title: "تم تسليم الطلب بنجاح", text: "تم توصيل طلبك رقم #MD2485 بنجاح", time: "اليوم، 2:30 مساءً" },
+  { icon: "/account/st-truck.png", title: "تم شحن الطلب", text: "طلبك رقم #MD2485 خرج للتوصيل", time: "أمس، 11:15 صباحًا" },
+  { icon: "/account/st-gear.png", title: "قيد التجهيز", text: "يتم الآن تجهيز طلبك رقم #MD2485", time: "اليوم، 6:20 مساءً" },
+  { icon: "/account/st-box.png", title: "تم تأكيد الطلب", text: "تم تأكيد طلبك رقم #MD2485", time: "أمس، 4:12 مساءً" },
+  { icon: "/account/st-back.png", title: "تم إصدار استرجاع", text: "تم إصدار مبلغ مسترجع للطلب رقم #MD2401", time: "8 مايو، 10:30 صباحًا" },
+];
+
+const favs = [
+  { id: "cleanser", name: "غسول لطيف للبشرة الحساسة", price: 9.3, reviews: 68, rating: 4.8, image: "/account/wish-wash.png" },
+  { id: "palette", name: "باليت ظلال العيون", price: 16, reviews: 85, rating: 4.9, image: "/account/wish-palette.png" },
+  { id: "serum", name: "سيروم فيتامين سي لإشراقة البشرة", price: 14.5, reviews: 92, rating: 4.8, image: "/account/wish-serum.png" },
+  { id: "cream", name: "كريم الترطيب العميق بماء الورد", price: 13.2, reviews: 96, rating: 4.9, image: "/account/wish-cream.png" },
+  { id: "lipstick", name: "أحمر شفاه مطفي فاخر", price: 9.2, reviews: 74, rating: 4.7, image: "/account/wish-lipstick.png" },
+  { id: "perfume", name: "عطر وردي فاخر", price: 48, reviews: 112, rating: 4.9, image: "/account/wish-perfume.png" },
+];
+
 export function AccountPage() {
-  const { profile, points, orders, wished, login } = useStore();
+  const { profile, points, orders, wished, login, addToCart, toggleWish, logout } = useStore();
+  const navigate = useNavigate();
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);
   const [phone, setPhone] = useState(profile.phone);
   const [saved, setSaved] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
+  const wishCount = Math.max(wished.length, 12);
+  const orderCount = Math.max(orders.length, 8);
 
   function save(event: FormEvent) {
     event.preventDefault();
@@ -70,75 +139,257 @@ export function AccountPage() {
   }
 
   return (
-    <Shell title="حسابي">
-      <p className="lead">مرحبًا بكِ في عالم مداد.. حيث الجمال دائمًا أقرب إليك</p>
-      <section className="profile-card">
-        <img src="/images/face-sara.jpg" alt="" />
-        <div>
-          <h2>{profile.name}</h2>
-          <p>عضوة منذ مارس 2024 · البحرين</p>
-          <p>{profile.email}</p>
+    <div className="account-wash">
+      <div className="account-dash">
+        <div className="acc-body">
+          <aside className="acc-menu">
+            <MenuLinks />
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate("/login");
+              }}
+            >
+              <img src="/account/ico-out.png" alt="" />
+              تسجيل الخروج
+            </button>
+          </aside>
+
+          <div className="acc-main">
+            <section className="acc-hero">
+              <img src="/account/hero.jpg" alt="" />
+              <div className="acc-hero-copy">
+                <h1>حسابي</h1>
+                <p>مرحباً بك في عالم مداد..</p>
+                <strong>حيث الجمال دائماً أقرب إليك</strong>
+              </div>
+            </section>
+            <div className="acc-top">
+              <article className="acc-hello">
+                <div className="acc-hello-head">
+                  <div>
+                    <p>مرحباً بك مجدداً</p>
+                    <h2>
+                      <img src="/account/ico-crown.png" alt="" />
+                      {profile.name}
+                    </h2>
+                    <ul>
+                      <li>
+                        <img src="/account/ico-cal.png" alt="" />
+                        عضو منذ مارس 2024
+                      </li>
+                      <li>
+                        <img src="/account/ico-pin.png" alt="" />
+                        البحرين
+                      </li>
+                      <li>{profile.email}</li>
+                    </ul>
+                  </div>
+                  <div className="acc-avatar">
+                    <img src="/account/sara.png" alt="" />
+                    <span>
+                      <img src="/account/ico-cam.png" alt="" />
+                    </span>
+                  </div>
+                </div>
+              </article>
+
+              <article className="acc-points">
+                <header>
+                  <h2>
+                    <img src="/account/gift.png" alt="" />
+                    نقاطي ومكافآتي
+                  </h2>
+                  <Link to="/rewards">عرض كل المكافآت</Link>
+                </header>
+                <p className="acc-points-num">
+                  <b>{points.toLocaleString("en-US")}</b> نقطة
+                </p>
+                <p className="acc-points-note">اجمع 250 نقطة أخرى لتحصل على قسيمة خصم 10 د.ب</p>
+                <div className="acc-bar">
+                  <i style={{ width: "83%" }} />
+                </div>
+                <div className="acc-tiers">
+                  <article>
+                    <b>2,000 نقطة</b>
+                    <span>مجموعة هدايا فاخرة</span>
+                  </article>
+                  <article>
+                    <b>1,500 نقطة</b>
+                    <span>قسيمة خصم 10 د.ب</span>
+                  </article>
+                  <article className="on">
+                    <b>الحالي</b>
+                    <span>{points.toLocaleString("en-US")} نقطة</span>
+                  </article>
+                </div>
+              </article>
+            </div>
+
+            <div className="acc-stats">
+              <article>
+                <img src="/account/ico-coins.png" alt="" />
+                <b>{points.toLocaleString("en-US")}</b>
+                <span>النقاط المتاحة</span>
+              </article>
+              <article>
+                <img src="/account/ico-box.png" alt="" />
+                <b>{orderCount}</b>
+                <span>إجمالي الطلبات</span>
+              </article>
+              <article>
+                <img src="/account/ico-heart.png" alt="" />
+                <b>{wishCount}</b>
+                <span>منتج في المفضلة</span>
+              </article>
+              <article>
+                <img src="/account/ico-ticket.png" alt="" />
+                <b>3</b>
+                <span>كوبونات نشطة</span>
+              </article>
+            </div>
+
+            <div className="acc-mid">
+              <section className="acc-orders">
+                <header>
+                  <h2>طلباتي</h2>
+                  <Link to="/orders">عرض الكل</Link>
+                </header>
+                {dashOrders.map((order) => (
+                  <article key={order.id}>
+                    <div className="acc-order-top">
+                      <div>
+                        <strong>#{order.id}</strong>
+                        <span>{order.date}</span>
+                      </div>
+                      <b dir="ltr">{money(order.total)}</b>
+                      <em>تم الدفع</em>
+                    </div>
+                    <div className="acc-order-mid">
+                    <div className="acc-thumbs">
+                      {order.thumbs.map((src) => (
+                        <img key={src} src={src} alt="" />
+                      ))}
+                    </div>
+                    <span>{order.count} منتجات</span>
+                    <div className="acc-order-links">
+                      <Link to={order.href}>{order.action}</Link>
+                      {order.again ? <Link to="/shop">اطلب مرة أخرى</Link> : null}
+                    </div>
+                    </div>
+                    <ol className="acc-steps">
+                      {steps.map((label, index) => (
+                        <li key={label} className={index <= order.step ? "on" : ""}>
+                          <i />
+                          {label}
+                        </li>
+                      ))}
+                    </ol>
+                  </article>
+                ))}
+              </section>
+
+              <section className="acc-activity">
+                <header>
+                  <h2>آخر الأنشطة والإشعارات</h2>
+                  <Link to="/notifications">عرض الكل</Link>
+                </header>
+                {activity.map((item) => (
+                  <article key={item.title}>
+                    <img src={item.icon} alt="" />
+                    <div>
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                      <small>{item.time}</small>
+                    </div>
+                  </article>
+                ))}
+              </section>
+
+              <article className="acc-invite">
+                <img src="/account/invite.png" alt="" />
+                <h2>ادعِ صديقاتك واربح نقاط إضافية</h2>
+                <Link to="/rewards">دعوة الآن</Link>
+              </article>
+            </div>
+
+            <section className="acc-favs">
+              <header>
+                <h2>
+                  <img src="/account/ico-heart.png" alt="" />
+                  منتجاتي المفضلة
+                </h2>
+                <div>
+                  <button type="button" aria-label="السابق" onClick={() => scroller.current?.scrollBy({ left: 260, behavior: "smooth" })}>
+                    ‹
+                  </button>
+                  <button type="button" aria-label="التالي" onClick={() => scroller.current?.scrollBy({ left: -260, behavior: "smooth" })}>
+                    ›
+                  </button>
+                </div>
+              </header>
+              <div className="acc-fav-row" ref={scroller}>
+                {favs.map((item) => {
+                  const product = allProducts.find((entry) => entry.id === item.id);
+                  const loved = wished.includes(item.id);
+                  return (
+                    <article key={item.id}>
+                      <button type="button" className={loved ? "fav on" : "fav"} aria-label="المفضلة" onClick={() => toggleWish(item.id)}>
+                        <img src="/account/ico-heart.png" alt="" />
+                      </button>
+                      <Link to={`/product/${item.id}`}>
+                        <img src={item.image} alt="" />
+                      </Link>
+                      <h3>
+                        <Link to={`/product/${item.id}`}>{item.name}</Link>
+                      </h3>
+                      <small>Medad</small>
+                      <p>
+                        ({item.reviews}) {"★".repeat(5)}
+                      </p>
+                      <strong dir="ltr">{money(item.price)}</strong>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => {
+                          if (product) addToCart(product, 1);
+                        }}
+                      >
+                        <Icon name="bag" />
+                        أضف إلى السلة
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="panel" id="profile">
+              <h2>الملف الشخصي</h2>
+              <form className="form-grid" onSubmit={save}>
+                <label>
+                  الاسم
+                  <input value={name} onChange={(event) => setName(event.target.value)} />
+                </label>
+                <label>
+                  البريد الإلكتروني
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                </label>
+                <label>
+                  رقم الجوال
+                  <input dir="ltr" value={phone} onChange={(event) => setPhone(event.target.value)} />
+                </label>
+                <button type="submit" className="btn">
+                  حفظ التعديلات
+                </button>
+                {saved ? <p className="form-ok">تم تحديث بياناتك</p> : null}
+              </form>
+            </section>
+          </div>
         </div>
-      </section>
-      <div className="stat-grid">
-        <article>
-          <b>{points.toLocaleString("en-US")}</b>
-          <span>النقاط المتاحة</span>
-        </article>
-        <article>
-          <b>{orders.length}</b>
-          <span>إجمالي الطلبات</span>
-        </article>
-        <article>
-          <b>{wished.length}</b>
-          <span>منتجات في المفضلة</span>
-        </article>
-        <article>
-          <b>3</b>
-          <span>كوبونات نشطة</span>
-        </article>
       </div>
-      <section className="panel">
-        <h2>طلباتي</h2>
-        {orders.slice(0, 3).map((order) => (
-          <article key={order.id} className="order-row">
-            <div>
-              <strong>#{order.id}</strong>
-              <span>
-                {order.date} · {order.statusLabel}
-              </span>
-            </div>
-            <div className="order-thumbs">
-              {order.items.map((item) => (
-                <img key={item.id} src={item.image} alt="" />
-              ))}
-            </div>
-            <Link to={`/track/${order.id}`}>تتبع الطلب</Link>
-          </article>
-        ))}
-      </section>
-      <section className="panel" id="profile">
-        <h2>الملف الشخصي</h2>
-        <form className="form-grid" onSubmit={save}>
-          <label>
-            الاسم
-            <input value={name} onChange={(event) => setName(event.target.value)} />
-          </label>
-          <label>
-            البريد الإلكتروني
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-          </label>
-          <label>
-            رقم الجوال
-            <input dir="ltr" value={phone} onChange={(event) => setPhone(event.target.value)} />
-          </label>
-          <button type="submit" className="btn">
-            حفظ التعديلات
-          </button>
-          {saved ? <p className="form-ok">تم تحديث بياناتك</p> : null}
-        </form>
-      </section>
-    </Shell>
+    </div>
   );
 }
 
